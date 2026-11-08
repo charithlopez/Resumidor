@@ -1,3 +1,6 @@
+const EN_LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+const URL_API = EN_LOCAL ? "" : "https://TU-SERVICIO.onrender.com";
+
 let longitud = "";
 
 const textoOriginal = document.querySelector("#textoOriginal");
@@ -74,7 +77,7 @@ botonResumir.addEventListener("click", async function() {
 
     try {
 
-        const respuesta = await fetch("/resumir", {
+        const respuesta = await fetch(URL_API + "/resumir", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ texto: texto, longitud: longitud })
@@ -391,3 +394,6 @@ confirmarConDosClics(botonOlvidar, function() {
 
 aplicarTema(leerGuardado(CLAVE_TEMA));
 mostrarHistorial();
+
+// Despierta el servidor gratuito apenas se abre la página
+fetch(URL_API + "/api/salud").catch(function() {});
