@@ -1,0 +1,1 @@
+const o=location.hostname==="localhost"||location.hostname==="127.0.0.1",t=o?"":"https://resumidor-ge5f.onrender.com",e="tema",r="historial",n=10,s={corto:"Corto",mediano:"Mediano",largo:"Largo"};export{r as CLAVE_HISTORIAL,e as CLAVE_TEMA,o as EN_LOCAL,n as MAX_HISTORIAL,s as NOMBRES_LONGITUD,t as URL_API};

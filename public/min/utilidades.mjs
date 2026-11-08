@@ -1,0 +1,1 @@
+function e(r){const t=r.trim();return t===""?0:t.split(/\s+/).length}function n(r){const t=new Date(r.id);return isNaN(t.getTime())?String(r.fecha||""):t.toLocaleString("es-CO",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}export{e as contarPalabras,n as formatearFecha};
