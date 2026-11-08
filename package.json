@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "esbuild public/js/main.mjs public/js/api.mjs public/js/almacenamiento.mjs public/js/config.mjs public/js/elementos.mjs public/js/interfaz.mjs public/js/utilidades.mjs --minify --format=esm --out-extension:.js=.mjs --outdir=public/min && esbuild public/styles.css --minify --outfile=public/styles.min.css"
   },
   "keywords": [],
   "author": "",
@@ -18,5 +19,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
