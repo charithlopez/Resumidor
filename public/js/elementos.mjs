@@ -1,0 +1,15 @@
+export const textoOriginal = document.querySelector("#textoOriginal");
+export const textoResumen = document.querySelector("#textoResumen");
+export const contadorOriginal = document.querySelector("#contadorOriginal");
+export const contadorResumen = document.querySelector("#contadorResumen");
+export const botonResumir = document.querySelector("#btnResumir");
+export const botonCopiar = document.querySelector("#btnCopiar");
+export const botonTema = document.querySelector("#btnTema");
+export const grupoLongitud = document.querySelector("#grupoLongitud");
+export const estado = document.querySelector("#estado");
+export const mensajeCopiado = document.querySelector("#mensajeCopiado");
+export const listaHistorial = document.querySelector("#listaHistorial");
+export const historialVacio = document.querySelector("#historialVacio");
+export const tituloHistorial = document.querySelector("#tituloHistorial");
+export const botonBorrarHistorial = document.querySelector("#btnBorrarHistorial");
+export const botonOlvidar = document.querySelector("#btnOlvidar");
