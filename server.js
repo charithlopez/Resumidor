@@ -6,16 +6,19 @@ const cors = require("cors");
 
 const app = express();
 
-app.use(cors());
-app.use(express.json({ limit: "5mb" }));
-app.use(express.static(path.join(__dirname, "public")));
-
 const PORT = process.env.PORT || 3000;
-const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434/api/chat";
-const MODELO = process.env.MODELO || "hf.co/unsloth/Qwen3-4B-Instruct-2507-GGUF:Q4_K_M";
-const NUM_CTX = 4096;
-const KEEP_ALIVE = "30m";
+const IA_URL = process.env.IA_URL || "https://api.groq.com/openai/v1/chat/completions";
+const IA_MODELO = process.env.IA_MODELO || "llama-3.3-70b-versatile";
+const IA_CLAVE = process.env.IA_CLAVE;
+
+const ORIGENES = (process.env.ORIGENES_PERMITIDOS || "http://localhost:3000")
+    .split(",")
+    .map(function(origen) {
+        return origen.trim();
+    });
+
 const MAX_CARACTERES = 10000;
+const MINIMO_PALABRAS = 25;
 
 const FORMATOS = {
     corto: "en 1 o 2 frases",
@@ -29,15 +32,26 @@ const PALABRAS = {
     largo: 175
 };
 
-const MINIMO_PALABRAS = 25;
+app.use(cors({ origin: ORIGENES }));
+app.use(express.json({ limit: "100kb" }));
+app.use(express.static(path.join(__dirname, "public")));
 
 let ocupado = false;
 
 app.get("/api/salud", function(req, res) {
-    res.json({ estado: "ok", modelo: MODELO });
+    res.json({ estado: "ok", modelo: IA_MODELO });
+});
+
+app.use("/api", function(req, res) {
+    res.status(404).json({ error: "Ruta no encontrada." });
 });
 
 app.post("/resumir", async function(req, res) {
+
+    if (!IA_CLAVE) {
+        console.log("Falta IA_CLAVE: agrégala en el archivo .env");
+        return res.status(500).json({ error: "El servidor no está configurado todavía." });
+    }
 
     const { texto, longitud } = req.body || {};
 
@@ -83,18 +97,17 @@ app.post("/resumir", async function(req, res) {
 
     try {
 
-        const respuesta = await fetch(OLLAMA_URL, {
+        const respuesta = await fetch(IA_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + IA_CLAVE
+            },
             signal: controlador.signal,
             body: JSON.stringify({
-                model: MODELO,
+                model: IA_MODELO,
                 stream: true,
-                keep_alive: KEEP_ALIVE,
-                options: {
-                    temperature: 0.2,
-                    num_ctx: NUM_CTX
-                },
+                temperature: 0.2,
                 messages: [
                     {
                         role: "system",
@@ -109,9 +122,16 @@ app.post("/resumir", async function(req, res) {
         });
 
         if (!respuesta.ok) {
-            console.log("Error de Ollama:", await respuesta.text());
-            return res.status(500).json({
-                error: "Ollama devolvió un error. ¿Descargaste el modelo?"
+            console.log("Error del servicio de IA (" + respuesta.status + "):", await respuesta.text());
+
+            if (respuesta.status === 429) {
+                return res.status(429).json({
+                    error: "El servicio de IA está ocupado. Espera un minuto e inténtalo de nuevo."
+                });
+            }
+
+            return res.status(502).json({
+                error: "El servicio de IA devolvió un error. Revisa la clave y el modelo."
             });
         }
 
@@ -121,12 +141,26 @@ app.post("/resumir", async function(req, res) {
         let pendiente = "";
 
         const procesarLinea = function(linea) {
-            if (linea.trim() === "") {
+            const limpia = linea.trim();
+
+            if (!limpia.startsWith("data:")) {
                 return;
             }
-            const parte = JSON.parse(linea);
-            if (parte.message && parte.message.content) {
-                res.write(parte.message.content);
+
+            const dato = limpia.slice(5).trim();
+
+            if (dato === "" || dato === "[DONE]") {
+                return;
+            }
+
+            const parte = JSON.parse(dato);
+            const contenido = parte.choices
+                && parte.choices[0]
+                && parte.choices[0].delta
+                && parte.choices[0].delta.content;
+
+            if (contenido) {
+                res.write(contenido);
             }
         };
 
@@ -144,11 +178,11 @@ app.post("/resumir", async function(req, res) {
 
     } catch (error) {
 
-        console.log("Problema con Ollama:", error.message);
+        console.log("Problema con el servicio de IA:", error.message);
 
         if (!res.headersSent) {
             res.status(503).json({
-                error: "No se pudo conectar con Ollama. ¿Está abierto?"
+                error: "No se pudo conectar con el servicio de IA."
             });
         } else {
             res.end();
@@ -159,6 +193,25 @@ app.post("/resumir", async function(req, res) {
         ocupado = false;
 
     }
+
+});
+
+app.use(function(error, req, res, next) {
+
+    if (res.headersSent) {
+        return next(error);
+    }
+
+    if (error.type === "entity.too.large") {
+        return res.status(413).json({ error: "El texto es demasiado largo." });
+    }
+
+    if (error.type === "entity.parse.failed") {
+        return res.status(400).json({ error: "La petición no es válida." });
+    }
+
+    console.log("Error inesperado:", error.message);
+    res.status(500).json({ error: "Error interno del servidor." });
 
 });
 
@@ -174,24 +227,9 @@ app.listen(PORT, function(error) {
     }
 
     console.log("Servidor funcionando en http://localhost:" + PORT);
-    console.log("Cargando el modelo en memoria...");
-
-    fetch(OLLAMA_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            model: MODELO,
-            keep_alive: KEEP_ALIVE,
-            options: { num_ctx: NUM_CTX }
-        })
-    })
-    .then(function(respuesta) {
-        console.log(respuesta.ok
-            ? "Modelo listo."
-            : "No se pudo cargar el modelo. ¿Lo descargaste?");
-    })
-    .catch(function() {
-        console.log("Ollama no está activo. Ábrelo antes de resumir.");
-    });
+    console.log("Modelo de IA: " + IA_MODELO);
+    console.log(IA_CLAVE
+        ? "Clave de IA encontrada."
+        : "ATENCIÓN: falta IA_CLAVE en el archivo .env.");
 
 });
