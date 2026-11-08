@@ -3,6 +3,7 @@ require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const express = require("express");
 const cors = require("cors");
+const compression = require("compression");
 
 const app = express();
 
@@ -31,7 +32,14 @@ const PALABRAS = {
     mediano: 80,
     largo: 175
 };
-
+app.use(compression({
+    filter: function(req, res) {
+        if (req.path === "/resumir") {
+            return false;
+        }
+        return compression.filter(req, res);
+    }
+}));
 app.use(cors({ origin: ORIGENES }));
 app.use(express.json({ limit: "100kb" }));
 app.use(express.static(path.join(__dirname, "public")));
