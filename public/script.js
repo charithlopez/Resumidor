@@ -1,5 +1,5 @@
 const EN_LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
-const URL_API = EN_LOCAL ? "" : "https://TU-SERVICIO.onrender.com";
+const URL_API = EN_LOCAL ? "" : "https://resumidor-ge5f.onrender.com";
 
 let longitud = "";
 
