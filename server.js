@@ -18,8 +18,8 @@ const ORIGENES = (process.env.ORIGENES_PERMITIDOS || "http://localhost:3000")
         return origen.trim();
     });
 
-const MAX_CARACTERES = 10000;
-const MINIMO_PALABRAS = 25;
+const MAX_CARACTERES = 20000;
+const MINIMO_PALABRAS = 50;
 
 const FORMATOS = {
     corto: "en 1 o 2 frases",
@@ -28,9 +28,9 @@ const FORMATOS = {
 };
 
 const PALABRAS = {
-    corto: 40,
-    mediano: 80,
-    largo: 175
+    corto: 60,
+    mediano: 100,
+    largo: 250
 };
 app.use(compression({
     filter: function(req, res) {
